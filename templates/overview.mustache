@@ -1,0 +1,47 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+    Licensed under the GNU GPL v3 or later.
+
+    @template block_msclarity/overview
+    Admin-only overview from the shared reporting snapshot.
+    Example context (json):
+    {
+        "metrics": [{"label": "Sessions", "value": "125"}],
+        "updatedat": "1 October 2026, 12:17",
+        "stale": false,
+        "status": "",
+        "dashboardurl": "https://clarity.microsoft.com/projects/view/example/dashboard",
+        "refreshurl": "https://moodle.example/blocks/msclarity/refresh.php",
+        "sesskey": "example",
+        "refreshdisabled": false,
+        "requestusage": "Plugin API attempts in the last 24 hours: 1/10.",
+        "projectquota": "Clarity project quota remaining: unknown (not provided by the API)."
+    }
+}}
+<div class="block-msclarity-overview">
+    <p class="text-muted">{{#str}} reportingwindow, block_msclarity {{/str}}</p>
+    {{#status}}<p role="status">{{status}}</p>{{/status}}
+    {{#stale}}<p class="text-warning">{{#str}} staledata, block_msclarity {{/str}}</p>{{/stale}}
+    <dl>
+        {{#metrics}}
+            <dt>{{label}}</dt>
+            <dd>{{value}}{{#detail}} <small class="text-muted">({{detail}})</small>{{/detail}}</dd>
+        {{/metrics}}
+    </dl>
+    {{#updatedat}}<p class="small text-muted">{{#str}} lastupdated, block_msclarity {{/str}} {{updatedat}}</p>{{/updatedat}}
+    {{#refreshurl}}
+        <form action="{{refreshurl}}" method="post" class="mb-2">
+            <input type="hidden" name="sesskey" value="{{sesskey}}">
+            <button type="submit" class="btn btn-secondary" {{#refreshdisabled}}disabled{{/refreshdisabled}}>
+                {{#str}} refreshnow, block_msclarity {{/str}}
+            </button>
+        </form>
+        <p class="small text-muted">{{requestusage}} {{projectquota}}</p>
+        {{#refreshnotice}}<p role="status">{{refreshnotice}}</p>{{/refreshnotice}}
+        {{#nextrefresh}}<p class="small text-muted">{{nextrefresh}}</p>{{/nextrefresh}}
+        <p class="small text-muted">{{#str}} quotashared, block_msclarity {{/str}}</p>
+    {{/refreshurl}}
+    {{#dashboardurl}}
+        <a href="{{dashboardurl}}" target="_blank" rel="noopener noreferrer">{{#str}} opendashboard, block_msclarity {{/str}}</a>
+    {{/dashboardurl}}
+</div>

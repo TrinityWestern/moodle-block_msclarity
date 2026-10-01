@@ -1,0 +1,9 @@
+/dist/
+/node_modules/
+/vendor/
+.DS_Store
+.env
+.cursor
+.vscode
+.idea
+.agents
