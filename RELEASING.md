@@ -6,19 +6,25 @@ The Marketplace API adds versions to an existing plugin maintained by the token'
 account. It cannot create the initial `block_msclarity` listing.
 
 1. Build the ZIP with `python3 tools/package.py`.
-2. Log in at https://marketplace.moodle.com/ and submit a new plugin using its web interface.
+2. Log in at https://marketplace.moodle.com/ and choose **How to submit a plugin** to
+   submit a new plugin using its web interface.
 3. Use the listing text and links in [MARKETPLACE.md](MARKETPLACE.md), upload
    `dist/block_msclarity-1.0.2.zip`, and attach `screenshot.png`.
-4. Complete the Marketplace review process. A version submission is queued for
-   prechecks; acceptance of an upload alone does not mean it has been published.
-5. Once the listing can accept new versions, create a token at
+4. Complete Marketplace's initial listing review and confirm the listing exists
+   under the maintainer account. The version API cannot create a new listing; an
+   unregistered component returns `404 Plugin not found`.
+5. Create a token at
    https://marketplace.moodle.com/account/security under your maintainer account.
 6. Add the token as the repository Actions secret `MOODLE_MARKETPLACE_TOKEN` at
    https://github.com/TrinityWestern/moodle-block_msclarity/settings/secrets/actions.
+7. Once Marketplace allows the listing to accept versions, add the repository
+   Actions variable `MOODLE_MARKETPLACE_PLUGIN_READY` with the value `true` at
+   https://github.com/TrinityWestern/moodle-block_msclarity/settings/variables/actions.
 
 Do not commit tokens or include them in release notes or ZIP files. Without the
-repository secret, the release workflow skips Marketplace submission and explains
-the missing setup in its job summary.
+repository secret and the ready variable, the release workflow skips Marketplace
+submission and explains the missing setup in its job summary. The ready variable
+defaults to unset so a tag push cannot send the unregistered component to the API.
 
 ## Subsequent releases
 
