@@ -5,7 +5,7 @@
  * Run: php tests/http.php http://localhost:8197 /path/to/test/moodledata/msclarity-test-fixture.json
  *
  * @package block_msclarity
- * @copyright 2026 Trinity Western University
+ * @copyright 2026 Man Lung Ken Yeung <manlung.yeung@twu.ca>
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 if (PHP_SAPI !== 'cli') {

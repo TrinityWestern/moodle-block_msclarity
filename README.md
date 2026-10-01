@@ -2,19 +2,21 @@
 
 ![screenshot](screenshot.png)
 
-One **block plugin** for Moodle 4.5 and newer. It provides site-wide Clarity tracking,
+One **block plugin** for Moodle 4.5–5.2. It provides site-wide Clarity tracking,
 admin-only course and user links, and an optional admin dashboard overview.
 Tracking and navigation work on pages with **no block instance**.
 
 ## Install
 
-1. Upload `dist/block_msclarity-1.0.1.zip` through **Site administration → Plugins → Install plugins**,
+1. Download `block_msclarity-1.0.2.zip` from the
+   [GitHub releases](https://github.com/TrinityWestern/moodle-block_msclarity/releases) and upload it through
+   **Site administration → Plugins → Install plugins**,
    or copy this repository into `blocks/msclarity` (`public/blocks/msclarity` on Moodle 5.1+).
-   The plugin component is `block_msclarity`, despite this workspace's original directory name.
+   The plugin component is `block_msclarity`.
 2. Complete Moodle's plugin installation through **Site administration → Notifications**.
 3. Remove the old Clarity snippet from **Appearance → Additional HTML** before entering the project ID.
 4. Open **Plugins → Blocks → Microsoft Clarity** and enter the two settings:
-   - **Project ID**: from Clarity **Settings → Overview**; for the existing project, `w3y4plwlqv`.
+   - **Project ID**: from Clarity **Settings → Overview**.
    - **API token**: generate in that same project's **Settings → Data Export**. This enables reporting.
 5. As a site admin, open your dashboard, enable edit mode, and add **Microsoft Clarity**.
    You can also add it to **Appearance → Default Dashboard page**. It remains invisible to non-admins
@@ -176,4 +178,13 @@ reporting and the signed-in destination filter require the project's credentials
 - [Clarity custom tags](https://learn.microsoft.com/en-us/clarity/filters/custom-tags)
 - [Moodle block plugins](https://moodledev.io/docs/4.5/apis/plugintypes/blocks)
 
-Licensed under the GNU GPL v3 or later; see `COPYING.txt`.
+## Author and license
+
+Copyright © 2026 Man Lung Ken Yeung <manlung.yeung@twu.ca>.
+
+This plugin is licensed under the GNU General Public License, version 3 or any later version
+(`GPL-3.0-or-later`); see [COPYING.txt](COPYING.txt). It is distributed without any warranty.
+
+Report issues at [GitHub Issues](https://github.com/TrinityWestern/moodle-block_msclarity/issues).
+Maintainers: see [RELEASING.md](https://github.com/TrinityWestern/moodle-block_msclarity/blob/master/RELEASING.md)
+for packaging and Moodle Marketplace submission.

@@ -1,4 +1,6 @@
 // Licensed under the GNU GPL v3 or later.
+// Copyright (c) 2026 Man Lung Ken Yeung <manlung.yeung@twu.ca>
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Run with: node --test tests/tracking.test.cjs
 const assert = require('node:assert/strict');
 const fs = require('node:fs');

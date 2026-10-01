@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (c) 2026 Man Lung Ken Yeung <manlung.yeung@twu.ca>
+name: Release to Moodle Marketplace
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag (for example, v1.0.2)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: moodle-release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  check-marketplace-setup:
+    runs-on: ubuntu-latest
+    outputs:
+      configured: ${{ steps.token.outputs.configured }}
+    steps:
+      - name: Check Marketplace token availability
+        id: token
+        env:
+          MARKETPLACE_TOKEN: ${{ secrets.MOODLE_MARKETPLACE_TOKEN }}
+        run: |
+          if [[ -n "$MARKETPLACE_TOKEN" ]]; then
+            echo 'configured=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'configured=false' >> "$GITHUB_OUTPUT"
+            echo 'Marketplace submission skipped: register the plugin and add MOODLE_MARKETPLACE_TOKEN. See RELEASING.md.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  release-to-marketplace:
+    needs: check-marketplace-setup
+    if: needs.check-marketplace-setup.outputs.configured == 'true'
+    # Official workflow revision 2026091801; update this pin after review.
+    uses: moodlehq/moodle-plugin-release/.github/workflows/moodle-release.yml@4467fd51a0e7f4bcda665eb2f8fb00365d10a39d
+    with:
+      tag: ${{ inputs.tag || github.ref_name }}
+    secrets:
+      MOODLE_MARKETPLACE_TOKEN: ${{ secrets.MOODLE_MARKETPLACE_TOKEN }}

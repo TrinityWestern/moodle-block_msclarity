@@ -5,7 +5,7 @@
  * Run with: php tests/metrics.php
  *
  * @package block_msclarity
- * @copyright 2026 Trinity Western University
+ * @copyright 2026 Man Lung Ken Yeung <manlung.yeung@twu.ca>
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 if (PHP_SAPI !== 'cli') {

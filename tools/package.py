@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026 Man Lung Ken Yeung <manlung.yeung@twu.ca>
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Build a single Moodle-installable ZIP, excluding development-only files."""
 
 from pathlib import Path
@@ -12,8 +14,9 @@ output = root / "dist" / f"block_msclarity-{release}.zip"
 output.parent.mkdir(exist_ok=True)
 files = [root / name for name in (
     "version.php", "block_msclarity.php", "settings.php", "lib.php", "refresh.php", "README.md", "COPYING.txt",
+    "CHANGES.md", "screenshot.png",
 )]
-for directory in ("classes", "db", "js", "lang", "templates"):
+for directory in ("classes", "db", "js", "lang", "templates", "pix"):
     files.extend(path for path in (root / directory).rglob("*") if path.is_file())
 
 with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:

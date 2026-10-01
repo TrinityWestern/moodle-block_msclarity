@@ -2,7 +2,9 @@
 // Licensed under the GNU GPL v3 or later.
 /**
  * Clarity queue and context tags. Loaded by the global output hook, not block rendering.
- * @copyright 2026 Trinity Western University
+ * @package block_msclarity
+ * @copyright 2026 Man Lung Ken Yeung <manlung.yeung@twu.ca>
+ * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 (function(window, document) {
     'use strict';
