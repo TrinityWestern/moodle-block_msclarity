@@ -1,5 +1,7 @@
 # Microsoft Clarity for Moodle
 
+![screenshot](screenshot.png)
+
 One **block plugin** for Moodle 4.5 and newer. It provides site-wide Clarity tracking,
 admin-only course and user links, and an optional admin dashboard overview.
 Tracking and navigation work on pages with **no block instance**.
