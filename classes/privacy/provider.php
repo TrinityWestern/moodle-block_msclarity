@@ -21,11 +21,20 @@
 namespace block_msclarity\privacy;
 
 use core_privacy\local\metadata\collection;
+use core_privacy\local\request\approved_contextlist;
+use core_privacy\local\request\approved_userlist;
+use core_privacy\local\request\contextlist;
+use core_privacy\local\request\userlist;
 
 defined('MOODLE_INTERNAL') || die();
 
-/** Disclose the browser data transmitted to Microsoft Clarity. */
-class provider implements \core_privacy\local\metadata\provider {
+/**
+ * Disclose browser data sent to Microsoft Clarity; store no personal data in Moodle.
+ */
+class provider implements
+        \core_privacy\local\metadata\provider,
+        \core_privacy\local\request\plugin\provider,
+        \core_privacy\local\request\core_userlist_provider {
     /**
      * @param collection $collection Metadata collection.
      * @return collection External data declarations.
@@ -44,5 +53,43 @@ class provider implements \core_privacy\local\metadata\provider {
             'browserdata' => 'privacy:metadata:clarity:browserdata',
         ], 'privacy:metadata:clarity');
         return $collection;
+    }
+
+    /**
+     * @param int $userid The user to search.
+     * @return contextlist Empty; this plugin stores no per-user Moodle data.
+     */
+    public static function get_contexts_for_userid(int $userid): contextlist {
+        return new contextlist();
+    }
+
+    /**
+     * @param userlist $userlist Userlist for the context.
+     */
+    public static function get_users_in_context(userlist $userlist): void {
+    }
+
+    /**
+     * @param approved_contextlist $contextlist Approved contexts to export.
+     */
+    public static function export_user_data(approved_contextlist $contextlist): void {
+    }
+
+    /**
+     * @param \context $context Context to delete data for.
+     */
+    public static function delete_data_for_all_users_in_context(\context $context): void {
+    }
+
+    /**
+     * @param approved_contextlist $contextlist Approved contexts for the user.
+     */
+    public static function delete_data_for_user(approved_contextlist $contextlist): void {
+    }
+
+    /**
+     * @param approved_userlist $userlist Approved users in a context.
+     */
+    public static function delete_data_for_users(approved_userlist $userlist): void {
     }
 }

@@ -62,14 +62,14 @@ function check(bool $condition, string $message): void {
 
 /**
  * @param string $html Page HTML.
- * @return array Tracking payload from the global head hook.
+ * @return array Tracking payload from the AMD init call.
  */
 function payload(string $html): array {
-    preg_match('/data-msclarity="([^"]+)"/', $html, $matches);
-    if (empty($matches[1])) {
-        throw new RuntimeException('Missing head tracking payload.');
+    // Moodle emits require(['block_msclarity/tracking'], function(amd){amd.init({...});});
+    if (!preg_match('/block_msclarity\/tracking[^]]*\][\s\S]*?\.init\((\{.*?\})\)\s*;/s', $html, $matches)) {
+        throw new RuntimeException('Missing AMD tracking payload.');
     }
-    return json_decode(html_entity_decode($matches[1], ENT_QUOTES | ENT_HTML5), true, 512, JSON_THROW_ON_ERROR);
+    return json_decode($matches[1], true, 512, JSON_THROW_ON_ERROR);
 }
 
 /**
@@ -105,7 +105,7 @@ function check_new_tab(string $html, string $filter): void {
 try {
     $html = request('/login/index.php');
     check(payload($html)['userid'] === null, 'Logged-out HTML loads site-wide tracking without a block instance.');
-    check(substr_count($html, 'data-msclarity=') === 1, 'One tracking loader per rendered page.');
+    check(substr_count($html, 'block_msclarity/tracking') === 1, 'One tracking AMD module per rendered page.');
     login('admin');
     $html = request('/course/view.php?id=' . $fixture['courseid']);
     $context = payload($html);

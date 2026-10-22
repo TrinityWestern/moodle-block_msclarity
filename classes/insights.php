@@ -31,9 +31,7 @@ final class insights {
      * @return array Stored state, excluding snapshots collected under other credentials.
      */
     public static function state(): array {
-        global $DB;
-        $state = json_decode((string)$DB->get_field('config_plugins', 'value',
-            ['plugin' => 'block_msclarity', 'name' => 'reportstate']), true);
+        $state = json_decode((string)state_store::get('reportstate'), true);
         if (!is_array($state)) {
             return [];
         }
@@ -111,6 +109,6 @@ final class insights {
      * @param array $state Aggregate snapshot and refresh metadata.
      */
     private static function save(array $state): void {
-        set_config('reportstate', json_encode($state, JSON_THROW_ON_ERROR), 'block_msclarity');
+        state_store::set('reportstate', json_encode($state, JSON_THROW_ON_ERROR));
     }
 }

@@ -16,7 +16,7 @@ files = [root / name for name in (
     "version.php", "block_msclarity.php", "settings.php", "lib.php", "refresh.php", "README.md", "COPYING.txt",
     "CHANGES.md", "screenshot.png",
 )]
-for directory in ("classes", "db", "js", "lang", "templates", "pix"):
+for directory in ("classes", "db", "amd", "lang", "templates", "pix"):
     files.extend(path for path in (root / directory).rglob("*") if path.is_file())
 
 with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:

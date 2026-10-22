@@ -2,25 +2,22 @@
 // Licensed under the GNU GPL v3 or later.
 /**
  * Clarity queue and context tags. Loaded by the global output hook, not block rendering.
- * @package block_msclarity
- * @copyright 2026 Man Lung Ken Yeung <manlung.yeung@twu.ca>
- * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ *
+ * @module     block_msclarity/tracking
+ * @copyright  2026 Man Lung Ken Yeung <manlung.yeung@twu.ca>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-(function(window, document) {
-    'use strict';
 
-    const script = document.currentScript;
-    if (!script || window.__moodleMsClarityInitialized) {
+/**
+ * Initialise Clarity for the current page.
+ *
+ * @param {Object} payload Tracking fields from PHP
+ */
+export const init = (payload) => {
+    if (!payload || window.__moodleMsClarityInitialized) {
         return;
     }
-
-    let payload;
-    try {
-        payload = JSON.parse(script.getAttribute('data-msclarity'));
-    } catch (error) {
-        return;
-    }
-    if (!payload || !/^[a-zA-Z0-9]{1,64}$/.test(payload.projectid)) {
+    if (!/^[a-zA-Z0-9]{1,64}$/.test(payload.projectid)) {
         return;
     }
     window.__moodleMsClarityInitialized = true;
@@ -41,7 +38,7 @@
     if (payload.userid) {
         window.clarity('identify', payload.userid);
     }
-    Object.entries(payload.tags || {}).forEach(function([key, value]) {
-        window.clarity('set', key, String(value));
+    Object.keys(payload.tags || {}).forEach((key) => {
+        window.clarity('set', key, String(payload.tags[key]));
     });
-})(window, document);
+};

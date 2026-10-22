@@ -91,20 +91,18 @@ final class request_budget {
 
     /** Preserve the legacy last attempt and 429 backoff when upgrading from 1.0.0. */
     public static function migrate_legacy(): void {
-        global $DB;
-        if ($DB->get_field('config_plugins', 'value', ['plugin' => 'block_msclarity', 'name' => 'requestbudget']) === false) {
+        if (state_store::get('requestbudget') === null) {
             self::save(self::load());
         }
     }
 
     /**
-     * Read the database directly after acquiring the lock; request-local config caches can be stale.
+     * Read under the refresh lock so concurrent writers cannot race on stale rows.
      * @return array Project ledgers, with a conservative seed for legacy installations.
      */
     private static function load(): array {
-        global $DB;
-        $raw = $DB->get_field('config_plugins', 'value', ['plugin' => 'block_msclarity', 'name' => 'requestbudget']);
-        if ($raw !== false) {
+        $raw = state_store::get('requestbudget');
+        if ($raw !== null) {
             $ledger = json_decode($raw, true, 64, JSON_THROW_ON_ERROR);
             if (!is_array($ledger) || !is_array($ledger['projects'] ?? null)) {
                 throw new \UnexpectedValueException('Invalid Clarity request ledger.');
@@ -112,8 +110,7 @@ final class request_budget {
             return $ledger;
         }
         $ledger = ['projects' => []];
-        $state = json_decode((string)$DB->get_field('config_plugins', 'value',
-            ['plugin' => 'block_msclarity', 'name' => 'reportstate']), true);
+        $state = json_decode((string)state_store::get('reportstate'), true);
         $projectid = configuration::project_id();
         if ($projectid && is_array($state)) {
             // Version 1.0.0 stored only the last attempt and allowed one request per six hours.
@@ -139,6 +136,6 @@ final class request_budget {
      * @param array $ledger Per-project accounting without API credentials or response data.
      */
     private static function save(array $ledger): void {
-        set_config('requestbudget', json_encode($ledger, JSON_THROW_ON_ERROR), 'block_msclarity');
+        state_store::set('requestbudget', json_encode($ledger, JSON_THROW_ON_ERROR));
     }
 }

@@ -32,16 +32,11 @@ final class hook_callbacks {
     ): void {
         global $USER;
         if ((defined('CLI_SCRIPT') && CLI_SCRIPT) || (defined('AJAX_SCRIPT') && AJAX_SCRIPT) ||
-                !configuration::project_id() || !configuration::enabled()) {
+                !configuration::project_id() || !configuration::enabled() || !configuration::tracking_allowed()) {
             return;
         }
         $page = $hook->renderer->get_page();
         $payload = tracking::payload($page, $USER, isloggedin() && !isguestuser());
-        $url = new \moodle_url('/blocks/msclarity/js/tracking.js', ['v' => get_config('block_msclarity', 'version')]);
-        $hook->add_html(\html_writer::tag('script', '', [
-            'src' => $url->out(false),
-            'defer' => 'defer',
-            'data-msclarity' => json_encode($payload, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT),
-        ]));
+        $page->requires->js_call_amd('block_msclarity/tracking', 'init', [$payload]);
     }
 }

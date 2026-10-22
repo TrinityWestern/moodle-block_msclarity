@@ -8,38 +8,46 @@ Tracking and navigation work on pages with **no block instance**.
 
 ## Install
 
-1. Download `block_msclarity-1.0.2.zip` from the
+1. Download `block_msclarity-1.1.0.zip` from the
    [GitHub releases](https://github.com/TrinityWestern/moodle-block_msclarity/releases) and upload it through
    **Site administration → Plugins → Install plugins**,
    or copy this repository into `blocks/msclarity` (`public/blocks/msclarity` on Moodle 5.1+).
    The plugin component is `block_msclarity`.
 2. Complete Moodle's plugin installation through **Site administration → Notifications**.
 3. Remove the old Clarity snippet from **Appearance → Additional HTML** before entering the project ID.
-4. Open **Plugins → Blocks → Microsoft Clarity** and enter the two settings:
+4. Open **Plugins → Blocks → Microsoft Clarity** and configure:
    - **Project ID**: from Clarity **Settings → Overview**.
    - **API token**: generate in that same project's **Settings → Data Export**. This enables reporting.
+   - Optional **Send username** / **Send email** (off by default).
+   - Optional **Require site policy agreement before tracking** (off by default).
 5. As a site admin, open your dashboard, enable edit mode, and add **Microsoft Clarity**.
    You can also add it to **Appearance → Default Dashboard page**. It remains invisible to non-admins
    when their dashboards inherit it; existing dashboards follow Moodle's normal reset behavior.
 
-There are exactly two plugin settings and no per-instance configuration. A blank project ID disables tracking
-and contextual links. A blank API token disables reporting while tracking continues. Disabling the plugin
-in **Manage blocks** stops tracking, links, and reporting. Removing a dashboard instance only removes that display.
+There is no per-instance configuration. A blank project ID disables tracking and contextual links. A blank API
+token disables reporting while tracking continues. Disabling the plugin in **Manage blocks** stops tracking,
+links, and reporting. Removing a dashboard instance only removes that display.
 
 ## Tracking
 
-The plugin loads Clarity asynchronously for browser HTML pages, including logged-out and guest pages.
-On every authenticated non-guest page it calls `clarity("identify", "<Moodle username>")` and sends
-`MoodleUserID`, `Username`, and `Email` tags using the current Moodle visitor. It uses neither `MoodleContextBridge`
-nor browser globals such as `M.cfg.userId`.
+The plugin loads Clarity asynchronously via the AMD module `block_msclarity/tracking` for browser HTML pages,
+including logged-out and guest pages. On every authenticated non-guest page it calls
+`clarity("identify", …)` and sends context tags using the current Moodle visitor. By default Identify uses the
+numeric Moodle user ID and only the `MoodleUserID` user tag. Enable **Send username** to Identify by username
+and add a readable `Username` tag; enable **Send email** to add a readable `Email` tag. It uses neither
+`MoodleContextBridge` nor browser globals such as `M.cfg.userId`.
 
-Context tags are fixed:
+When **Require site policy agreement before tracking** is enabled and a site policy is defined, the Clarity
+script is not injected until the visitor has agreed (`policyagreed`). If no site policy is configured, tracking
+behaves as usual. The plugin does not call Clarity's consent API.
+
+Context tags:
 
 | Tag | Value |
 | --- | --- |
 | `MoodleUserID` | Current authenticated visitor's numeric Moodle user ID |
-| `Username` | Current authenticated visitor's Moodle username |
-| `Email` | Current authenticated visitor's Moodle email address |
+| `Username` | Moodle username (only when **Send username** is enabled) |
+| `Email` | Moodle email address (only when **Send email** is enabled) |
 | `MoodleCourseID` | Course ID, including activity pages within that course |
 | `MoodleCourseModuleID` | Activity's `course_modules.id`, rather than its module instance ID |
 | `MoodleModuleType` | Activity type, such as `page`, `quiz`, or `assign` |
@@ -50,13 +58,12 @@ Context tags are fixed:
 Unavailable tags are omitted, and the site course is excluded from course tags. Guests are never identified
 as one shared Moodle user. The visitor remains the tracked user when they view another person's profile.
 
-Microsoft hashes the Identify API's username identifier. The separate `MoodleUserID`, `Username`, and `Email`
-custom tags are readable values. Use the custom user-ID filter for a username, or the `Email` tag to filter by email.
-The existing numeric `MoodleUserID` filters remain available for profile links and historical sessions.
-Sessions collected under the previous numeric Identify ID will not automatically merge with the new username identifier;
-a Moodle username change also changes that identifier. The plugin declares the transmitted data through
-Moodle's Privacy API and stores no individual user analytics in Moodle. Clarity's own collection follows the
-project's masking and consent behavior; this plugin does not send a command granting consent.
+Microsoft hashes the Identify API identifier. Readable custom tags are filterable in Clarity. Profile links
+continue to use the numeric `MoodleUserID` filter. Changing the Identify value (for example enabling username
+sharing, or a Moodle username change) does not merge historical sessions under the previous identifier.
+The plugin declares transmitted data through Moodle's Privacy API (including empty request-provider methods)
+and stores no individual user analytics in Moodle. Runtime request ledger and aggregate report snapshots live
+in the `block_msclarity_state` table, not in `config_plugins`.
 
 ## Admin-only access and links
 
@@ -123,7 +130,8 @@ projects uses a separate ledger; switching back retains the earlier project's us
 the known backoff and conservatively reserves four legacy request slots until 24 hours after the last old attempt,
 because that version recorded only its last attempt and could run once every six hours. The token is masked in Moodle's
 settings audit log and is not included in tracking payloads, links, task output, block output, or external block configuration.
-It is stored using Moodle's standard server-side plugin configuration storage.
+It is stored using Moodle's standard server-side plugin configuration storage. Runtime ledger and snapshot
+state use the dedicated `block_msclarity_state` table.
 
 For an initial refresh, click **Refresh now**, or run the task through Moodle's **Scheduled tasks** administration page or CLI:
 
@@ -136,6 +144,9 @@ The export API does not offer course-ID or user-ID filtering. The overview is si
 opens the corresponding filtered dashboard in Clarity.
 
 ## Build and checks
+
+Pull requests and pushes run [moodle-plugin-ci](https://github.com/moodlehq/moodle-plugin-ci) via
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) across Moodle 4.5–5.2.
 
 Build an installable ZIP using Python's standard library:
 

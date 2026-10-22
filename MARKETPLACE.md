@@ -19,8 +19,9 @@ links for site admins, and an optional overview of site-wide engagement statisti
 
 Microsoft Clarity for Moodle adds site-wide asynchronous Clarity tracking to Moodle
 4.5–5.2. Tracking works on ordinary browser pages even when no block instance has
-been added. Authenticated visitors are identified by Moodle username, with user,
-course, activity, and page context tags to help filter sessions in Clarity.
+been added. Authenticated visitors are identified by numeric Moodle user ID by
+default, with optional username and email tags, plus course, activity, and page
+context tags to help filter sessions in Clarity.
 
 Site admins can open filtered Clarity dashboards from course navigation and user
 profiles. An optional admin dashboard block displays site-wide sessions, unique
@@ -34,13 +35,13 @@ Clarity Settings → Overview. The optional reporting feature also requires an A
 token generated in Settings → Data Export. No additional Moodle plugin dependency
 is required.
 
-The plugin sends authenticated visitors' numeric Moodle user IDs, usernames, and
-email addresses to Microsoft Clarity as readable custom tags. It also sends course,
-activity, and page context tags when available. Logged-out and guest pages are
-tracked without an authenticated visitor identity. The plugin declares transmitted
-data through Moodle's Privacy API and stores only the latest aggregate report and
-refresh metadata locally. Administrators should configure their Clarity project's
-masking and consent behavior and describe this integration in their site's privacy
+The plugin always sends authenticated visitors' numeric Moodle user IDs. Username
+and email custom tags are off by default and can be enabled in plugin settings.
+An optional setting delays loading Clarity until the visitor has agreed to the
+site policy when one is configured. The plugin declares transmitted data through
+Moodle's Privacy API and stores only the latest aggregate report and refresh
+metadata locally. Administrators should configure their Clarity project's masking
+and consent behavior and describe this integration in their site's privacy
 information.
 
 Install the ZIP through Site administration → Plugins → Install plugins. Remove
@@ -53,8 +54,8 @@ Licensed under GNU GPL v3 or later.
 
 ## Submission assets and links
 
-- Package: `dist/block_msclarity-1.0.2.zip`
-- Release: `1.0.2`; build: `2026100102`; maturity: stable.
+- Package: `dist/block_msclarity-1.1.0.zip`
+- Release: `1.1.0`; build: `2026102200`; maturity: stable.
 - Supported Moodle branches: 4.5, 5.0, 5.1, 5.2.
 - Repository: https://github.com/TrinityWestern/moodle-block_msclarity
 - Documentation: https://github.com/TrinityWestern/moodle-block_msclarity/blob/master/README.md

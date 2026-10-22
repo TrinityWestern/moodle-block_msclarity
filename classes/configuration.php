@@ -42,6 +42,39 @@ final class configuration {
         return isset($enabled['msclarity']);
     }
 
+    /** @return bool Whether Username / Identify-by-username is enabled. */
+    public static function send_username(): bool {
+        return (bool)get_config('block_msclarity', 'sendusername');
+    }
+
+    /** @return bool Whether the Email custom tag is enabled. */
+    public static function send_email(): bool {
+        return (bool)get_config('block_msclarity', 'sendemail');
+    }
+
+    /** @return bool Whether Clarity waits for site policy agreement when a policy is defined. */
+    public static function require_policy(): bool {
+        return (bool)get_config('block_msclarity', 'requirepolicy');
+    }
+
+    /**
+     * When require_policy is off, or no site policy is defined, tracking may load.
+     * Otherwise the visitor must have agreed (`policyagreed`).
+     * @return bool Whether the Clarity script may be injected for this visitor.
+     */
+    public static function tracking_allowed(): bool {
+        global $USER;
+        if (!self::require_policy()) {
+            return true;
+        }
+        $forguest = !isloggedin() || isguestuser();
+        $manager = new \core_privacy\local\sitepolicy\manager();
+        if (!$manager->is_defined($forguest)) {
+            return true;
+        }
+        return !empty($USER->policyagreed);
+    }
+
     /**
      * An explicitly granted capability cannot bypass site-admin-only access.
      * @return bool Whether the current visitor may see Clarity reports and links.

@@ -7,26 +7,39 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
-const source = fs.readFileSync(path.join(__dirname, '../js/tracking.js'), 'utf8');
+const source = fs.readFileSync(path.join(__dirname, '../amd/src/tracking.js'), 'utf8')
+    .replace('export const init =', 'const init =') + '\nmodule.exports = {init};\n';
 
-function browser(payload, existing = false) {
+function loadModule(window, document) {
+    const context = {window, document, module: {exports: {}}, exports: {}};
+    context.exports = context.module.exports;
+    vm.runInContext(source, vm.createContext(context));
+    return context.module.exports;
+}
+
+function browser() {
     const appended = [];
     const window = {};
     const document = {
-        currentScript: {getAttribute: () => typeof payload === 'string' ? payload : JSON.stringify(payload)},
-        querySelector: () => existing ? {} : null,
+        querySelector: () => null,
         createElement: () => ({}),
         head: {appendChild: tag => appended.push(tag)},
     };
-    const context = vm.createContext({window, document});
-    return {window, document, appended, run: () => vm.runInContext(source, context)};
+    document.querySelector = (sel) => {
+        if (sel.startsWith('script[src^="https://www.clarity.ms/tag/"]') && appended.length) {
+            return {};
+        }
+        return null;
+    };
+    const mod = loadModule(window, document);
+    return {window, document, appended, init: (payload) => mod.init(payload)};
 }
 
 test('loads asynchronously and queues user, course and activity tags before download', () => {
-    const b = browser({projectid: 'w3y4plwlqv', userid: 'admin', tags: {
+    const b = browser();
+    b.init({projectid: 'w3y4plwlqv', userid: 'admin', tags: {
         MoodleUserID: '30153', Username: 'admin', Email: 'admin@example.invalid', MoodleCourseID: '58081', MoodleCourseModuleID: '420',
     }});
-    b.run();
     assert.equal(b.appended.length, 1);
     assert.equal(b.appended[0].async, true);
     assert.equal(b.appended[0].src, 'https://www.clarity.ms/tag/w3y4plwlqv');
@@ -38,33 +51,40 @@ test('loads asynchronously and queues user, course and activity tags before down
 });
 
 test('anonymous visitors are tracked without assigning a shared guest identifier', () => {
-    const b = browser({projectid: 'abc123', userid: null, tags: {MoodlePageType: 'login-index'}});
-    b.run();
+    const b = browser();
+    b.init({projectid: 'abc123', userid: null, tags: {MoodlePageType: 'login-index'}});
     assert.equal(b.appended.length, 1);
     assert.deepEqual(Array.from(b.window.clarity.q, args => Array.from(args)), [['set', 'MoodlePageType', 'login-index']]);
 });
 
 test('repeated initialization does not add a second script or reapply identity', () => {
-    const b = browser({projectid: 'abc123', userid: '2', tags: {}});
-    b.run();
-    b.run();
+    const b = browser();
+    b.init({projectid: 'abc123', userid: '2', tags: {}});
+    b.init({projectid: 'abc123', userid: '2', tags: {}});
     assert.equal(b.appended.length, 1);
     assert.equal(b.window.clarity.q.length, 1);
 });
 
 test('an existing Clarity loader is reused', () => {
-    const b = browser({projectid: 'abc123', userid: '2', tags: {}}, true);
+    const appended = [];
+    const window = {};
+    const document = {
+        querySelector: () => ({}),
+        createElement: () => ({}),
+        head: {appendChild: tag => appended.push(tag)},
+    };
+    const mod = loadModule(window, document);
     const calls = [];
-    b.window.clarity = (...args) => calls.push(args);
-    b.run();
-    assert.equal(b.appended.length, 0);
+    window.clarity = (...args) => calls.push(args);
+    mod.init({projectid: 'abc123', userid: '2', tags: {}});
+    assert.equal(appended.length, 0);
     assert.deepEqual(calls, [['identify', '2']]);
 });
 
 test('malformed payloads and project IDs do not initialize tracking', () => {
-    for (const payload of ['invalid JSON', {projectid: 'bad/../../id', tags: {}}, {projectid: '', tags: {}}]) {
-        const b = browser(payload);
-        b.run();
+    for (const payload of [null, {projectid: 'bad/../../id', tags: {}}, {projectid: '', tags: {}}]) {
+        const b = browser();
+        b.init(payload);
         assert.equal(b.appended.length, 0);
         assert.equal(b.window.clarity, undefined);
     }
@@ -72,7 +92,7 @@ test('malformed payloads and project IDs do not initialize tracking', () => {
 
 test('user-supplied tag contents remain literal strings', () => {
     const username = '\"</script><script>alert(1)</script> & Ω';
-    const b = browser({projectid: 'abc123', userid: '2', tags: {Username: username}});
-    b.run();
+    const b = browser();
+    b.init({projectid: 'abc123', userid: '2', tags: {Username: username}});
     assert.equal(b.window.clarity.q[1][2], username);
 });

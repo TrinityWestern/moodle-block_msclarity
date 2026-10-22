@@ -70,10 +70,13 @@ check(\block_msclarity\configuration::can_view(), 'Site admin has access without
 
 set_config('projectid', 'w3y4plwlqv', 'block_msclarity');
 set_config('apitoken', 'test-secret-never-expose', 'block_msclarity');
-unset_config('reportstate', 'block_msclarity');
-set_config('requestbudget', json_encode(['projects' => []]), 'block_msclarity');
+set_config('sendusername', 0, 'block_msclarity');
+set_config('sendemail', 0, 'block_msclarity');
+set_config('requirepolicy', 0, 'block_msclarity');
+\block_msclarity\state_store::delete('reportstate');
+\block_msclarity\state_store::set('requestbudget', json_encode(['projects' => []]));
 $settingspage = admin_get_root(true, true)->locate('blocksettingmsclarity');
-check($settingspage !== false && count((array)$settingspage->settings) === 2, 'Exactly two admin settings.');
+check($settingspage !== false && count((array)$settingspage->settings) === 5, 'Exactly five admin settings.');
 $allsettings = array_values((array)$settingspage->settings);
 $token = $allsettings[1];
 check($token->write_setting("bad\r\nheader") !== '', 'Multiline tokens are rejected.');
@@ -85,15 +88,17 @@ check(count($logs) > 0 && !str_contains(json_encode($logs), 'test-secret'), 'Set
 $projectsetting = $allsettings[0];
 check($projectsetting->validate('x<script>') !== true && $projectsetting->validate('') === true,
     'Project validation rejects HTML and permits disabling tracking.');
+check((new \core_privacy\manager())->component_is_compliant('block_msclarity'),
+    'Privacy provider implements request APIs and is compliant.');
 
 // Upgrade retains a conservative allowance for the four possible legacy scheduled requests.
-unset_config('requestbudget', 'block_msclarity');
-set_config('reportstate', json_encode(['attemptedat' => time() - 30, 'retryafter' => time() + DAYSECS]), 'block_msclarity');
+\block_msclarity\state_store::delete('requestbudget');
+\block_msclarity\state_store::set('reportstate', json_encode(['attemptedat' => time() - 30, 'retryafter' => time() + DAYSECS]));
 \block_msclarity\request_budget::migrate_legacy();
 $legacy = \block_msclarity\request_budget::check('w3y4plwlqv', true, time());
 check($legacy['used'] === 4 && $legacy['reason'] === 'ratelimit', 'Upgrade preserves legacy attempts and upstream backoff.');
-set_config('requestbudget', json_encode(['projects' => []]), 'block_msclarity');
-unset_config('reportstate', 'block_msclarity');
+\block_msclarity\state_store::set('requestbudget', json_encode(['projects' => []]));
+\block_msclarity\state_store::delete('reportstate');
 
 $suffix = time();
 $course = create_course((object)['fullname' => 'Clarity test', 'shortname' => 'msc' . $suffix, 'category' => 1]);
@@ -108,15 +113,25 @@ $page->set_url('/course/view.php', ['id' => $course->id]);
 $page->set_course($course);
 $page->set_context(context_course::instance($course->id));
 $payload = \block_msclarity\tracking::payload($page, $admin, true);
-check($payload['userid'] === $admin->username && $payload['tags']['Username'] === $admin->username &&
-    $payload['tags']['Email'] === $admin->email && $payload['tags']['MoodleUserID'] === (string)$admin->id,
-    'Tracking identifies the visitor by username and includes email and the numeric Moodle tag.');
+check($payload['userid'] === (string)$admin->id && $payload['tags']['MoodleUserID'] === (string)$admin->id &&
+    !isset($payload['tags']['Username']) && !isset($payload['tags']['Email']),
+    'Default tracking identifies by Moodle user ID without username or email tags.');
+set_config('sendusername', 1, 'block_msclarity');
+set_config('sendemail', 1, 'block_msclarity');
+$optedin = \block_msclarity\tracking::payload($page, $admin, true);
+check($optedin['userid'] === $admin->username && $optedin['tags']['Username'] === $admin->username &&
+    $optedin['tags']['Email'] === $admin->email && $optedin['tags']['MoodleUserID'] === (string)$admin->id,
+    'Opt-in settings send username Identify, Username tag, and Email tag.');
+set_config('sendusername', 0, 'block_msclarity');
+set_config('sendemail', 0, 'block_msclarity');
 check($payload['tags']['MoodleCourseID'] === (string)$course->id &&
     $payload['tags']['MoodleCourseCategoryID'] === '1', 'Course and category context tags.');
 check(!str_contains(json_encode($payload), 'test-secret'), 'Browser tracking payload has no API token.');
 $guestpayload = \block_msclarity\tracking::payload($page, guest_user(), false);
 check($guestpayload['userid'] === null && !isset($guestpayload['tags']['Username']) && !isset($guestpayload['tags']['Email']),
     'Guests have no shared identity, username or email tags.');
+check(\block_msclarity\configuration::tracking_allowed(),
+    'Tracking is allowed when requirepolicy is off.');
 $sitepage = new moodle_page();
 $sitepage->set_url('/');
 $sitepage->set_course($SITE);
@@ -202,8 +217,8 @@ check(\block_msclarity\insights::refresh($client, $now + 2 * DAYSECS) === 'chang
     !isset(\block_msclarity\insights::state()['metrics']), 'Credentials changed during a request cannot store an outdated snapshot.');
 
 // Scheduled runs, manual refreshes and failures all consume one persistent project allowance.
-set_config('requestbudget', json_encode(['projects' => []]), 'block_msclarity');
-unset_config('reportstate', 'block_msclarity');
+\block_msclarity\state_store::set('requestbudget', json_encode(['projects' => []]));
+\block_msclarity\state_store::delete('reportstate');
 $client->change = false;
 $client->calls = 0;
 $client->result = ['metrics' => ['sessions' => 10]];
@@ -240,10 +255,10 @@ check(\block_msclarity\insights::refresh($client, $now + DAYSECS, true) === 'suc
     \block_msclarity\request_budget::check('w3y4plwlqv', true, $now + DAYSECS)['used'] === 10,
     'A request expires exactly at 24 hours and frees one slot.');
 
-// A request that read config before another process reserved slot ten must not use a stale cache.
-set_config('requestbudget', json_encode(['projects' => ['w3y4plwlqv' =>
-    ['attempts' => array_fill(0, 9, $now)]]]), 'block_msclarity');
-get_config('block_msclarity', 'requestbudget');
+// A request that read state before another process reserved slot ten must not use a stale cache.
+\block_msclarity\state_store::set('requestbudget', json_encode(['projects' => ['w3y4plwlqv' =>
+    ['attempts' => array_fill(0, 9, $now)]]]));
+\block_msclarity\state_store::get('requestbudget');
 $holder = proc_open([PHP_BINARY, __DIR__ . '/lock_holder.php', $argv[1], 'w3y4plwlqv', (string)($now + MINSECS)],
     [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
 try {
@@ -257,10 +272,10 @@ try {
 }
 $callsbefore = $client->calls;
 check(\block_msclarity\insights::refresh($client, $now + 2 * MINSECS, true) === 'quota' && $client->calls === $callsbefore,
-    'A stale request-local configuration cache cannot allow an eleventh request.');
+    'A stale in-process read cannot allow an eleventh request after another process reserved the last slot.');
 
 // Remote project consumers can exhaust Clarity before our local ten requests.
-set_config('requestbudget', json_encode(['projects' => []]), 'block_msclarity');
+\block_msclarity\state_store::set('requestbudget', json_encode(['projects' => []]));
 $client->result = ['error' => 'ratelimit'];
 check(\block_msclarity\insights::refresh($client, $now, true) === 'ratelimit', 'An upstream 429 installs a project backoff.');
 set_config('apitoken', 'another-token', 'block_msclarity');
@@ -304,15 +319,17 @@ $DB->set_field('block', 'visible', 1, ['name' => 'msclarity']);
 
 // Leave a representative snapshot and dashboard instance for browser smoke tests.
 set_config('apitoken', 'test-secret-never-expose', 'block_msclarity');
-unset_config('reportstate', 'block_msclarity');
-set_config('requestbudget', json_encode(['projects' => []]), 'block_msclarity');
+set_config('sendusername', 1, 'block_msclarity');
+set_config('sendemail', 1, 'block_msclarity');
+\block_msclarity\state_store::delete('reportstate');
+\block_msclarity\state_store::set('requestbudget', json_encode(['projects' => []]));
 $client->change = false;
 $client->result = ['metrics' => ['sessions' => 125, 'users' => 90, 'pagespersession' => 2.5, 'engagement' => 42.5,
     'rageclicks' => 2, 'deadclicks' => 0, 'ragepercent' => 1.6, 'deadpercent' => 0]];
 \block_msclarity\insights::refresh($client);
 // Keep HTTP tests from contacting Clarity: direct POSTs must stop at the exhausted allowance.
-set_config('requestbudget', json_encode(['projects' => ['w3y4plwlqv' =>
-    ['attempts' => array_fill(0, \block_msclarity\request_budget::LIMIT, time())]]]), 'block_msclarity');
+\block_msclarity\state_store::set('requestbudget', json_encode(['projects' => ['w3y4plwlqv' =>
+    ['attempts' => array_fill(0, \block_msclarity\request_budget::LIMIT, time())]]]));
 if (!$DB->record_exists('block_instances', ['blockname' => 'msclarity', 'parentcontextid' => $system->id,
     'pagetypepattern' => 'my-index'])) {
     $PAGE->blocks->add_block('msclarity', $PAGE->blocks->get_default_region(), 0, false, 'my-index', null);

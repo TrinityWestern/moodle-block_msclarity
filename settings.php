@@ -12,7 +12,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Exactly two site settings; no block-instance configuration.
+ * Site settings; no block-instance configuration.
  *
  * @package block_msclarity
  * @copyright 2026 Man Lung Ken Yeung <manlung.yeung@twu.ca>
@@ -32,4 +32,13 @@ if (!is_siteadmin()) {
         get_string('apitoken', 'block_msclarity'), get_string('apitoken_desc', 'block_msclarity'), '');
     $setting->set_updatedcallback([\block_msclarity\insights::class, 'invalidate']);
     $settings->add($setting);
+
+    $settings->add(new admin_setting_configcheckbox('block_msclarity/sendusername',
+        get_string('sendusername', 'block_msclarity'), get_string('sendusername_desc', 'block_msclarity'), 0));
+
+    $settings->add(new admin_setting_configcheckbox('block_msclarity/sendemail',
+        get_string('sendemail', 'block_msclarity'), get_string('sendemail_desc', 'block_msclarity'), 0));
+
+    $settings->add(new admin_setting_configcheckbox('block_msclarity/requirepolicy',
+        get_string('requirepolicy', 'block_msclarity'), get_string('requirepolicy_desc', 'block_msclarity'), 0));
 }

@@ -1,5 +1,16 @@
 # Release notes
 
+## 1.1.0 — 22 October 2026
+
+- Privacy API request provider so the component is reported compliant (empty export/delete; no per-user Moodle storage).
+- Admin settings to opt in to sending username and email to Clarity (off by default); Identify uses the numeric Moodle user ID otherwise.
+- Optional gate that loads Clarity only after site policy agreement when a policy is defined.
+- Request ledger and metrics snapshot stored in `block_msclarity_state` instead of `config_plugins`.
+- Tracking JavaScript moved to a Moodle AMD module (`block_msclarity/tracking`).
+- GitHub Actions workflow for moodle-plugin-ci on push and pull requests.
+
+Requires Moodle 4.5 or later; declared support covers Moodle 4.5–5.2.
+
 ## 1.0.2 — 1 October 2026
 
 First public release of Microsoft Clarity for Moodle (`block_msclarity`).

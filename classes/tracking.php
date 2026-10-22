@@ -35,11 +35,12 @@ final class tracking {
         $userid = null;
         if ($identified && !empty($user->id)) {
             $tags['MoodleUserID'] = (string)$user->id;
-            if (!empty($user->username)) {
+            $userid = (string)$user->id;
+            if (configuration::send_username() && !empty($user->username)) {
                 $userid = (string)$user->username;
                 $tags['Username'] = \core_text::substr($user->username, 0, 255);
             }
-            if (!empty($user->email)) {
+            if (configuration::send_email() && !empty($user->email)) {
                 $tags['Email'] = \core_text::substr($user->email, 0, 255);
             }
         }

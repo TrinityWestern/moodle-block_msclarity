@@ -30,7 +30,8 @@ defaults to unset so a tag push cannot send the unregistered component to the AP
 
 1. Increase `$plugin->version` and `$plugin->release` in `version.php`. Update
    `$plugin->supported` when support changes, and add the release notes to `CHANGES.md`.
-2. Run the checks and build the package:
+2. Confirm GitHub Actions **Moodle Plugin CI** is green on the branch. Also run the portable checks and
+   build the package:
 
    ```sh
    php tests/metrics.php
