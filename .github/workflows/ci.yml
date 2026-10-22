@@ -66,10 +66,19 @@ jobs:
 
       - name: Initialise moodle-plugin-ci
         run: |
+          # nektos/act sets ACT=true; its images lack GH-hosted runner packages.
+          if [ "${ACT:-}" = "true" ]; then
+            sudo apt-get update -qq
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+              default-mysql-client postgresql-client locales
+          fi
           composer create-project -n --no-dev --prefer-dist moodlehq/moodle-plugin-ci ci ^4
           echo $(cd ci/bin; pwd) >> $GITHUB_PATH
           echo $(cd ci/vendor/bin; pwd) >> $GITHUB_PATH
-          sudo locale-gen en_AU.UTF-8
+          # GitHub-hosted images have locale-gen; local act images often do not.
+          if command -v locale-gen >/dev/null 2>&1; then
+            sudo locale-gen en_AU.UTF-8
+          fi
           echo "NVM_DIR=$HOME/.nvm" >> $GITHUB_ENV
 
       - name: Install moodle-plugin-ci
@@ -89,8 +98,9 @@ jobs:
 
       - name: Moodle Code Checker
         if: ${{ !cancelled() }}
-        # phpcs.xml.dist refs moodle and excludes disposable tests/ CLI harnesses.
-        run: moodle-plugin-ci phpcs --standard=plugin/phpcs.xml.dist --max-warnings 0
+        # CWD is the plugin dir, so the ruleset path is phpcs.xml.dist (not plugin/...).
+        # That ruleset refs moodle and excludes disposable tests/ CLI harnesses.
+        run: moodle-plugin-ci phpcs --standard=phpcs.xml.dist --max-warnings 0
 
       - name: Moodle PHPDoc Checker
         if: ${{ !cancelled() }}

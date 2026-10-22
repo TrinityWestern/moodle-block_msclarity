@@ -1,6 +1,9 @@
 /dist/
 /node_modules/
 /vendor/
+/ci/
+.actrc
+.github/workflows/act-phpcs.yml
 .DS_Store
 .env
 .cursor
