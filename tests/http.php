@@ -1,5 +1,19 @@
 <?php
-// Licensed under the GNU GPL v3 or later.
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Rendered-page checks for a disposable Moodle site populated by integration.php.
  * Run: php tests/http.php http://localhost:8197 /path/to/test/moodledata/msclarity-test-fixture.json
@@ -12,6 +26,8 @@ if (PHP_SAPI !== 'cli') {
     http_response_code(404);
     exit;
 }
+define('MOODLE_INTERNAL', true);
+defined('MOODLE_INTERNAL') || die();
 $baseurl = $argv[1] ?? '';
 $fixture = json_decode(file_get_contents($argv[2]), true);
 if (!preg_match('~^http://localhost:[0-9]+$~', $baseurl)) {
@@ -27,6 +43,8 @@ curl_setopt_array($curl, [
 ]);
 
 /**
+ * Request.
+ *
  * @param string $path Relative test URL.
  * @param array|null $post Form data.
  * @param bool $expecterror Whether a Moodle error response is expected.
@@ -50,6 +68,8 @@ function request(string $path, ?array $post = null, bool $expecterror = false): 
 }
 
 /**
+ * Check.
+ *
  * @param bool $condition Assertion.
  * @param string $message Description.
  */
@@ -61,11 +81,13 @@ function check(bool $condition, string $message): void {
 }
 
 /**
+ * Payload.
+ *
  * @param string $html Page HTML.
  * @return array Tracking payload from the AMD init call.
  */
 function payload(string $html): array {
-    // Moodle emits require(['block_msclarity/tracking'], function(amd){amd.init({...});});
+    // Extract the JSON payload passed into the AMD tracking init call.
     if (!preg_match('/block_msclarity\/tracking[^]]*\][\s\S]*?\.init\((\{.*?\})\)\s*;/s', $html, $matches)) {
         throw new RuntimeException('Missing AMD tracking payload.');
     }
@@ -73,6 +95,8 @@ function payload(string $html): array {
 }
 
 /**
+ * Login.
+ *
  * @param string $username Test fixture user.
  */
 function login(string $username): void {
@@ -83,6 +107,8 @@ function login(string $username): void {
 }
 
 /**
+ * Check new tab.
+ *
  * @param string $html Rendered page.
  * @param string $filter Expected URL filter.
  */
@@ -109,23 +135,31 @@ try {
     login('admin');
     $html = request('/course/view.php?id=' . $fixture['courseid']);
     $context = payload($html);
-    check($context['userid'] === 'admin' && $context['tags']['MoodleUserID'] === '2' &&
+    check(
+        $context['userid'] === 'admin' && $context['tags']['MoodleUserID'] === '2' &&
         $context['tags']['Email'] === $fixture['adminemail'] && $context['tags']['MoodleCourseID'] === (string)$fixture['courseid'],
-        'Admin course HTML identifies the visitor and course.');
-    check(str_contains($html, 'MoodleCourseID%3A' . $fixture['courseid']) && str_contains($html, 'View course in Clarity'),
-        'Boost displays the whole-course Clarity navigation link.');
+        'Admin course HTML identifies the visitor and course.'
+    );
+    check(
+        str_contains($html, 'MoodleCourseID%3A' . $fixture['courseid']) && str_contains($html, 'View course in Clarity'),
+        'Boost displays the whole-course Clarity navigation link.'
+    );
     check_new_tab($html, 'MoodleCourseID%3A' . $fixture['courseid']);
     $html = request('/mod/page/view.php?id=' . $fixture['cmid']);
     $context = payload($html);
     check($context['tags']['MoodleCourseModuleID'] === (string)$fixture['cmid'] &&
         $context['tags']['MoodleCourseID'] === (string)$fixture['courseid'], 'Activity HTML carries activity and course IDs.');
     $html = request('/user/profile.php?id=' . $fixture['profileid']);
-    check(payload($html)['userid'] === 'admin' && str_contains($html, 'MoodleUserID%3A' . $fixture['profileid']),
-        'Profile identifies the visitor while its visible Clarity link targets the profile owner.');
+    check(
+        payload($html)['userid'] === 'admin' && str_contains($html, 'MoodleUserID%3A' . $fixture['profileid']),
+        'Profile identifies the visitor while its visible Clarity link targets the profile owner.'
+    );
     check_new_tab($html, 'MoodleUserID%3A' . $fixture['profileid']);
     $html = request('/my/index.php');
-    check(str_contains($html, 'block-msclarity-overview') && str_contains($html, 'Unique users'),
-        'Admin dashboard displays the overview block.');
+    check(
+        str_contains($html, 'block-msclarity-overview') && str_contains($html, 'Unique users'),
+        'Admin dashboard displays the overview block.'
+    );
     check(str_contains($html, 'Refresh now') && str_contains($html, 'method="post"') &&
         str_contains($html, 'Clarity project quota remaining: unknown') &&
         !str_contains($html, 'Remaining local allowance'), 'Admin block has a POST refresh button and honest quota feedback.');
@@ -138,8 +172,10 @@ try {
     check(str_contains($error, 'invalidrequest'), 'Refresh rejects GET requests.');
     // The fixture has just refreshed; the real endpoint must honor its cooldown without an API request.
     $result = request($refreshpath, ['sesskey' => $keys[1]]);
-    check(str_contains($result, 'Wait one minute') || str_contains($result, '10-request allowance'),
-        'Manual task endpoint respects the shared request budget.');
+    check(
+        str_contains($result, 'Wait one minute') || str_contains($result, '10-request allowance'),
+        'Manual task endpoint respects the shared request budget.'
+    );
     // A fresh client prevents reusing the admin session.
     $curl = null;
     unlink($cookies);
@@ -153,8 +189,11 @@ try {
     ]);
     login($fixture['managerusername']);
     $html = request('/my/index.php');
-    check(payload($html)['userid'] === $fixture['managerusername'] &&
-        payload($html)['tags']['Email'] === $fixture['manageremail'], 'Manager login identifies the manager by username and email.');
+    check(
+        payload($html)['userid'] === $fixture['managerusername'] &&
+            payload($html)['tags']['Email'] === $fixture['manageremail'],
+        'Manager login identifies the manager by username and email.'
+    );
     check(!str_contains($html, 'block-msclarity-overview'), 'Manager cannot see the shared default dashboard block.');
     $error = request('/blocks/msclarity/refresh.php', ['sesskey' => 'invalid'], true);
     check(str_contains($error, 'nopermissions'), 'Manager cannot run a refresh through a direct POST.');
@@ -164,6 +203,6 @@ try {
     check(!str_contains($html, 'View user in Clarity'), 'Manager profile HTML contains no Clarity navigation link.');
     echo "Rendered-page checks passed.\n";
 } finally {
-    curl_close($curl);
+    $curl = null;
     unlink($cookies);
 }

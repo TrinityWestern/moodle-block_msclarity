@@ -1,15 +1,18 @@
 <?php
 // This file is part of Moodle - http://moodle.org/
-// Moodle is free software: you can redistribute it and/or modify it under the terms of
-// the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or (at your option) any later version.
 //
-// Moodle is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
-// You should have received a copy of the GNU General Public License along with Moodle.
-// If not, see <https://www.gnu.org/licenses/>.
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
  * Persistent shared reporting snapshot and request throttling.
@@ -20,14 +23,18 @@
  */
 namespace block_msclarity;
 
-defined('MOODLE_INTERNAL') || die();
-
-/** Store only aggregate metrics, fixed error codes and refresh metadata. */
+/**
+ * Store only aggregate metrics, fixed error codes and refresh metadata.
+ */
 final class insights {
-    /** @var int Scheduled refresh interval; manual runs use the shared request budget and a short cooldown. */
+    /**
+     * @var int Scheduled refresh interval; manual runs use the shared request budget and a short cooldown.
+     */
     public const INTERVAL = 6 * HOURSECS;
 
     /**
+     * State.
+     *
      * @return array Stored state, excluding snapshots collected under other credentials.
      */
     public static function state(): array {
@@ -42,7 +49,9 @@ final class insights {
         return $state;
     }
 
-    /** Clear snapshots when either user-visible setting changes; preserve rate-limit pacing. */
+    /**
+     * Clear snapshots when either user-visible setting changes; preserve rate-limit pacing.
+     */
     public static function invalidate(): void {
         request_budget::migrate_legacy();
         $state = self::state();
@@ -106,6 +115,8 @@ final class insights {
     }
 
     /**
+     * Save.
+     *
      * @param array $state Aggregate snapshot and refresh metadata.
      */
     private static function save(array $state): void {

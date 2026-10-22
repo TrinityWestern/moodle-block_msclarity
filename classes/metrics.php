@@ -1,15 +1,18 @@
 <?php
 // This file is part of Moodle - http://moodle.org/
-// Moodle is free software: you can redistribute it and/or modify it under the terms of
-// the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or (at your option) any later version.
 //
-// Moodle is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
-// You should have received a copy of the GNU General Public License along with Moodle.
-// If not, see <https://www.gnu.org/licenses/>.
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
  * Normalize the API response without guessing missing statistics.
@@ -20,11 +23,13 @@
  */
 namespace block_msclarity;
 
-defined('MOODLE_INTERNAL') || die();
-
-/** Only retain site-wide numeric values needed by the overview. */
+/**
+ * Only retain site-wide numeric values needed by the overview.
+ */
 final class metrics {
     /**
+     * Parse.
+     *
      * @param string $json Export response body.
      * @return array Normalized metrics; null means unavailable, not zero.
      * @throws \UnexpectedValueException When the response is not an export metrics list.
@@ -41,8 +46,10 @@ final class metrics {
         $rows = [];
         $recognized = ['traffic', 'engagementtime', 'rageclickcount', 'deadclickcount'];
         foreach ($data as $metric) {
-            if (!is_array($metric) || !is_string($metric['metricName'] ?? null) ||
-                    !is_array($metric['information'] ?? null) || !array_is_list($metric['information'])) {
+            if (
+                !is_array($metric) || !is_string($metric['metricName'] ?? null) ||
+                    !is_array($metric['information'] ?? null) || !array_is_list($metric['information'])
+            ) {
                 throw new \UnexpectedValueException('Invalid export metric.');
             }
             $name = strtolower(str_replace(' ', '', $metric['metricName']));
@@ -77,6 +84,8 @@ final class metrics {
     }
 
     /**
+     * Number.
+     *
      * @param array $row A metric row.
      * @param array $keys Known field spellings, in priority order.
      * @param bool $integer Whether this is a count.

@@ -1,15 +1,18 @@
 <?php
 // This file is part of Moodle - http://moodle.org/
-// Moodle is free software: you can redistribute it and/or modify it under the terms of
-// the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or (at your option) any later version.
 //
-// Moodle is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
-// You should have received a copy of the GNU General Public License along with Moodle.
-// If not, see <https://www.gnu.org/licenses/>.
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
  * Admin-only Microsoft Clarity overview block.
@@ -18,36 +21,56 @@
  * @copyright 2026 Man Lung Ken Yeung <manlung.yeung@twu.ca>
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-defined('MOODLE_INTERNAL') || die();
-
-/** Dashboard display; site-wide hooks and tasks work without an instance. */
+/**
+ * Dashboard display; site-wide hooks and tasks work without an instance.
+ */
 class block_msclarity extends block_base {
-    /** Initialise the translated title. */
+    /**
+     * Initialise the translated title.
+     */
     public function init() {
         $this->title = get_string('pluginname', 'block_msclarity');
     }
 
-    /** @return array Dashboard only, including the default dashboard. */
+    /**
+     * Applicable formats.
+     *
+     * @return array Dashboard only, including the default dashboard.
+     */
     public function applicable_formats() {
         return ['all' => false, 'my' => true];
     }
 
-    /** @return bool Has site settings. */
+    /**
+     * Has config.
+     *
+     * @return bool Has site settings.
+     */
     public function has_config() {
         return true;
     }
 
-    /** @return bool No per-instance settings. */
+    /**
+     * Instance allow config.
+     *
+     * @return bool No per-instance settings.
+     */
     public function instance_allow_config() {
         return false;
     }
 
-    /** @return bool One instance per dashboard. */
+    /**
+     * Instance allow multiple.
+     *
+     * @return bool One instance per dashboard.
+     */
     public function instance_allow_multiple() {
         return false;
     }
 
     /**
+     * User can addto.
+     *
      * @param moodle_page $page Page being edited.
      * @return bool Non-admins cannot add this block, even with explicit capability grants.
      */
@@ -55,12 +78,18 @@ class block_msclarity extends block_base {
         return is_siteadmin() && parent::user_can_addto($page);
     }
 
-    /** @return bool Non-admins cannot edit a copied dashboard instance. */
+    /**
+     * Instance can be edited.
+     *
+     * @return bool Non-admins cannot edit a copied dashboard instance.
+     */
     public function instance_can_be_edited() {
         return is_siteadmin() && parent::instance_can_be_edited();
     }
 
     /**
+     * Get content for output.
+     *
      * @param renderer_base $output Output renderer.
      * @return block_contents|null Suppress even the title and editing controls for non-admins.
      */
@@ -72,6 +101,8 @@ class block_msclarity extends block_base {
     }
 
     /**
+     * Get content for external.
+     *
      * @param renderer_base $output Output renderer.
      * @return stdClass Empty output for non-admin web-service callers too.
      */
@@ -82,7 +113,11 @@ class block_msclarity extends block_base {
         return parent::get_content_for_external($output);
     }
 
-    /** @return stdClass Read the stored snapshot without any HTTP calls. */
+    /**
+     * Get content.
+     *
+     * @return stdClass Read the stored snapshot without any HTTP calls.
+     */
     public function get_content() {
         if (!\block_msclarity\configuration::can_view()) {
             return (object)['text' => '', 'footer' => ''];
@@ -100,8 +135,11 @@ class block_msclarity extends block_base {
             $data['refreshurl'] = (new moodle_url('/blocks/msclarity/refresh.php'))->out(false);
             $data['sesskey'] = sesskey();
             $data['refreshdisabled'] = $budget['reason'] !== null;
-            $data['requestusage'] = get_string('requestusage', 'block_msclarity',
-                (object)['used' => $budget['used'], 'limit' => \block_msclarity\request_budget::LIMIT]);
+            $data['requestusage'] = get_string(
+                'requestusage',
+                'block_msclarity',
+                (object)['used' => $budget['used'], 'limit' => \block_msclarity\request_budget::LIMIT]
+            );
             $data['projectquota'] = get_string('projectquotaunknown', 'block_msclarity');
             if ($budget['nextallowed']) {
                 $data['nextrefresh'] = get_string('nextrefresh', 'block_msclarity', userdate($budget['nextallowed']));
@@ -112,18 +150,25 @@ class block_msclarity extends block_base {
             $state = \block_msclarity\insights::state();
             if (!empty($state['updatedat'])) {
                 $data['updatedat'] = userdate($state['updatedat']);
-                $data['stale'] = !empty($state['error']) || time() >= $state['updatedat'] + \block_msclarity\insights::INTERVAL;
+                $data['stale'] = !empty($state['error'])
+                    || time() >= $state['updatedat'] + \block_msclarity\insights::INTERVAL;
                 $values = $state['metrics'] ?? [];
                 foreach (['sessions', 'users', 'pagespersession', 'engagement', 'rageclicks', 'deadclicks'] as $key) {
                     $value = $values[$key] ?? null;
                     $precision = in_array($key, ['pagespersession', 'engagement'], true) ? 2 : 0;
                     $item = [
                         'label' => get_string('metric_' . $key, 'block_msclarity'),
-                        'value' => $value === null ? get_string('unavailable', 'block_msclarity') : format_float($value, $precision),
+                        'value' => $value === null
+                            ? get_string('unavailable', 'block_msclarity')
+                            : format_float($value, $precision),
                     ];
                     $percentkey = ['rageclicks' => 'ragepercent', 'deadclicks' => 'deadpercent'][$key] ?? null;
                     if ($percentkey && isset($values[$percentkey])) {
-                        $item['detail'] = get_string('sessionspercentage', 'block_msclarity', format_float($values[$percentkey], 2));
+                        $item['detail'] = get_string(
+                            'sessionspercentage',
+                            'block_msclarity',
+                            format_float($values[$percentkey], 2)
+                        );
                     }
                     $data['metrics'][] = $item;
                 }

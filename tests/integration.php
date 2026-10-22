@@ -1,5 +1,19 @@
 <?php
-// Licensed under the GNU GPL v3 or later.
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Real Moodle integration checks. Use ONLY a disposable Moodle installation.
  * Run: php blocks/msclarity/tests/integration.php /path/to/test/moodle/config.php
@@ -19,6 +33,7 @@ if (empty($argv[1])) {
     exit(1);
 }
 require($argv[1]);
+defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->dirroot . '/course/lib.php');
 require_once($CFG->dirroot . '/course/modlib.php');
@@ -26,6 +41,8 @@ require_once($CFG->dirroot . '/user/lib.php');
 require_once(__DIR__ . '/../lib.php');
 
 /**
+ * Check.
+ *
  * @param bool $condition Assertion.
  * @param string $message Description.
  */
@@ -36,15 +53,25 @@ function check(bool $condition, string $message): void {
     echo "PASS: $message\n";
 }
 
-/** An export mock makes zero external requests. */
+/**
+ * An export mock makes zero external requests.
+ */
 class mock_export extends \block_msclarity\export_client {
-    /** @var int Calls made. */
+    /**
+     * @var int Calls made.
+     */
     public int $calls = 0;
-    /** @var array Next result. */
+    /**
+     * @var array Next result.
+     */
     public array $result = [];
-    /** @var bool Change credentials during the request to test race protection. */
+    /**
+     * @var bool Change credentials during the request to test race protection.
+     */
     public bool $change = false;
     /**
+     * Fetch.
+     *
      * @param string $token Unused secret.
      * @return array Mock result.
      */
@@ -64,8 +91,10 @@ $PAGE->set_url('/my/index.php');
 $PAGE->set_context($system);
 $PAGE->set_pagelayout('mydashboard');
 check(\block_msclarity\configuration::enabled(), 'Plugin is installed and enabled.');
-check(!$DB->record_exists_select('role_capabilities', 'capability LIKE ?', ['block/msclarity:%']),
-    'No role has a default Clarity capability grant.');
+check(
+    !$DB->record_exists_select('role_capabilities', 'capability LIKE ?', ['block/msclarity:%']),
+    'No role has a default Clarity capability grant.'
+);
 check(\block_msclarity\configuration::can_view(), 'Site admin has access without assigning a role.');
 
 set_config('projectid', 'w3y4plwlqv', 'block_msclarity');
@@ -86,10 +115,14 @@ $token->post_write_settings($original);
 $logs = $DB->get_records('config_log', ['plugin' => 'block_msclarity', 'name' => 'apitoken']);
 check(count($logs) > 0 && !str_contains(json_encode($logs), 'test-secret'), 'Setting audit logs mask token values.');
 $projectsetting = $allsettings[0];
-check($projectsetting->validate('x<script>') !== true && $projectsetting->validate('') === true,
-    'Project validation rejects HTML and permits disabling tracking.');
-check((new \core_privacy\manager())->component_is_compliant('block_msclarity'),
-    'Privacy provider implements request APIs and is compliant.');
+check(
+    $projectsetting->validate('x<script>') !== true && $projectsetting->validate('') === true,
+    'Project validation rejects HTML and permits disabling tracking.'
+);
+check(
+    (new \core_privacy\manager())->component_is_compliant('block_msclarity'),
+    'Privacy provider implements request APIs and is compliant.'
+);
 
 // Upgrade retains a conservative allowance for the four possible legacy scheduled requests.
 \block_msclarity\state_store::delete('requestbudget');
@@ -113,25 +146,33 @@ $page->set_url('/course/view.php', ['id' => $course->id]);
 $page->set_course($course);
 $page->set_context(context_course::instance($course->id));
 $payload = \block_msclarity\tracking::payload($page, $admin, true);
-check($payload['userid'] === (string)$admin->id && $payload['tags']['MoodleUserID'] === (string)$admin->id &&
+check(
+    $payload['userid'] === (string)$admin->id && $payload['tags']['MoodleUserID'] === (string)$admin->id &&
     !isset($payload['tags']['Username']) && !isset($payload['tags']['Email']),
-    'Default tracking identifies by Moodle user ID without username or email tags.');
+    'Default tracking identifies by Moodle user ID without username or email tags.'
+);
 set_config('sendusername', 1, 'block_msclarity');
 set_config('sendemail', 1, 'block_msclarity');
 $optedin = \block_msclarity\tracking::payload($page, $admin, true);
-check($optedin['userid'] === $admin->username && $optedin['tags']['Username'] === $admin->username &&
+check(
+    $optedin['userid'] === $admin->username && $optedin['tags']['Username'] === $admin->username &&
     $optedin['tags']['Email'] === $admin->email && $optedin['tags']['MoodleUserID'] === (string)$admin->id,
-    'Opt-in settings send username Identify, Username tag, and Email tag.');
+    'Opt-in settings send username Identify, Username tag, and Email tag.'
+);
 set_config('sendusername', 0, 'block_msclarity');
 set_config('sendemail', 0, 'block_msclarity');
 check($payload['tags']['MoodleCourseID'] === (string)$course->id &&
     $payload['tags']['MoodleCourseCategoryID'] === '1', 'Course and category context tags.');
 check(!str_contains(json_encode($payload), 'test-secret'), 'Browser tracking payload has no API token.');
 $guestpayload = \block_msclarity\tracking::payload($page, guest_user(), false);
-check($guestpayload['userid'] === null && !isset($guestpayload['tags']['Username']) && !isset($guestpayload['tags']['Email']),
-    'Guests have no shared identity, username or email tags.');
-check(\block_msclarity\configuration::tracking_allowed(),
-    'Tracking is allowed when requirepolicy is off.');
+check(
+    $guestpayload['userid'] === null && !isset($guestpayload['tags']['Username']) && !isset($guestpayload['tags']['Email']),
+    'Guests have no shared identity, username or email tags.'
+);
+check(
+    \block_msclarity\configuration::tracking_allowed(),
+    'Tracking is allowed when requirepolicy is off.'
+);
 $sitepage = new moodle_page();
 $sitepage->set_url('/');
 $sitepage->set_course($SITE);
@@ -162,10 +203,17 @@ check($courseurl->get_param('Variables') === 'MoodleCourseID:' . $course->id, 'C
 check($coursenode->get('msclarity')->action->attributes['target'] === '_blank' &&
     $coursenode->get('msclarity')->action->attributes['rel'] === 'noopener noreferrer', 'Course navigation opens Clarity in a safe new tab.');
 $usernode = navigation_node::create('User');
-block_msclarity_extend_navigation_user($usernode, $profile, context_user::instance($profile->id), $course,
-    $system);
-check($usernode->get('msclarity')->action->url->get_param('Variables') === 'MoodleUserID:' . $profile->id,
-    'Site profile link accepts system context and targets the viewed user, not the admin.');
+block_msclarity_extend_navigation_user(
+    $usernode,
+    $profile,
+    context_user::instance($profile->id),
+    $course,
+    $system
+);
+check(
+    $usernode->get('msclarity')->action->url->get_param('Variables') === 'MoodleUserID:' . $profile->id,
+    'Site profile link accepts system context and targets the viewed user, not the admin.'
+);
 $tree = new \core_user\output\myprofile\tree();
 $tree->add_category(new \core_user\output\myprofile\category('reports', 'Reports', null));
 block_msclarity_myprofile_navigation($tree, $profile, false, $course);
@@ -175,20 +223,29 @@ $client = new mock_export();
 $client->result = ['metrics' => \block_msclarity\metrics::parse('[{"metricName":"Traffic","information":[{"totalSessionCount":"125","distinctUserCount":"90","pagesPerSessionPercentage":2.5}]}]')];
 $now = time();
 check(\block_msclarity\insights::refresh($client, $now) === 'success' && $client->calls === 1, 'Refresh stores a normalized snapshot.');
-check(\block_msclarity\insights::refresh($client, $now + 60) === 'throttled' && $client->calls === 1,
-    'Repeated or manually triggered refresh is throttled.');
+check(
+    \block_msclarity\insights::refresh($client, $now + 60) === 'throttled' && $client->calls === 1,
+    'Repeated or manually triggered refresh is throttled.'
+);
 $block = block_instance('msclarity');
 $block->page = $PAGE;
 $content = $block->get_content()->text;
-check(str_contains($content, '125') && str_contains($content, 'Unavailable') && !str_contains($content, 'test-secret'),
-    'Overview renders metrics, marks absent values unavailable, and exposes no token.');
+check(
+    str_contains($content, '125') && str_contains($content, 'Unavailable') && !str_contains($content, 'test-secret'),
+    'Overview renders metrics, marks absent values unavailable, and exposes no token.'
+);
 check($client->calls === 1, 'Block rendering makes no export request.');
-$holder = proc_open([PHP_BINARY, __DIR__ . '/lock_holder.php', $argv[1]],
-    [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+$holder = proc_open(
+    [PHP_BINARY, __DIR__ . '/lock_holder.php', $argv[1]],
+    [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+    $pipes
+);
 try {
     check(trim(fgets($pipes[1])) === 'ready', 'Separate process acquired the reporting lock.');
-    check(\block_msclarity\insights::refresh($client, $now + DAYSECS) === 'locked' && $client->calls === 1,
-        'Concurrent refreshes share a lock.');
+    check(
+        \block_msclarity\insights::refresh($client, $now + DAYSECS) === 'locked' && $client->calls === 1,
+        'Concurrent refreshes share a lock.'
+    );
 } finally {
     fwrite($pipes[0], "release\n");
     foreach ($pipes as $pipe) {
@@ -200,13 +257,19 @@ $client->result = ['error' => 'authentication'];
 check(\block_msclarity\insights::refresh($client, $now + \block_msclarity\insights::INTERVAL) === 'authentication' &&
     \block_msclarity\insights::state()['metrics']['sessions'] === 125, 'Failed refresh preserves the previous successful snapshot.');
 $block->content = null;
-check(str_contains($block->get_content()->text, 'previously collected') && str_contains($block->content->text, 'rejected the API token'),
-    'Overview explains stale results and authentication errors.');
+check(
+    str_contains($block->get_content()->text, 'previously collected') && str_contains($block->content->text, 'rejected the API token'),
+    'Overview explains stale results and authentication errors.'
+);
 $client->result = ['error' => 'ratelimit'];
-check(\block_msclarity\insights::refresh($client, $now + 2 * \block_msclarity\insights::INTERVAL) === 'ratelimit',
-    'Rate limit is recorded.');
-check(\block_msclarity\insights::refresh($client, $now + 3 * \block_msclarity\insights::INTERVAL) === 'ratelimit',
-    'Rate-limited requests wait 24 hours.');
+check(
+    \block_msclarity\insights::refresh($client, $now + 2 * \block_msclarity\insights::INTERVAL) === 'ratelimit',
+    'Rate limit is recorded.'
+);
+check(
+    \block_msclarity\insights::refresh($client, $now + 3 * \block_msclarity\insights::INTERVAL) === 'ratelimit',
+    'Rate-limited requests wait 24 hours.'
+);
 set_config('apitoken', 'replacement-test-token', 'block_msclarity');
 check(!isset(\block_msclarity\insights::state()['metrics']), 'Programmatic credential changes invalidate old results.');
 \block_msclarity\insights::invalidate();
@@ -223,44 +286,67 @@ $client->change = false;
 $client->calls = 0;
 $client->result = ['metrics' => ['sessions' => 10]];
 check(\block_msclarity\insights::refresh($client, $now) === 'success', 'Scheduled request consumes the shared allowance.');
-check(\block_msclarity\insights::refresh($client, $now + 1, true) === 'cooldown' && $client->calls === 1,
-    'Double-clicks consume no additional API allowance.');
-check(\block_msclarity\insights::refresh($client, $now + MINSECS, true) === 'success' && $client->calls === 2,
-    'Manual refresh bypasses the six-hour schedule while respecting the cooldown.');
+check(
+    \block_msclarity\insights::refresh($client, $now + 1, true) === 'cooldown' && $client->calls === 1,
+    'Double-clicks consume no additional API allowance.'
+);
+check(
+    \block_msclarity\insights::refresh($client, $now + MINSECS, true) === 'success' && $client->calls === 2,
+    'Manual refresh bypasses the six-hour schedule while respecting the cooldown.'
+);
 $client->result = ['error' => 'network'];
-check(\block_msclarity\insights::refresh($client, $now + 2 * MINSECS, true) === 'network' &&
+check(
+    \block_msclarity\insights::refresh($client, $now + 2 * MINSECS, true) === 'network' &&
     \block_msclarity\request_budget::check('w3y4plwlqv', true, $now + 2 * MINSECS)['used'] === 3,
-    'Failed HTTP attempts also consume the allowance.');
+    'Failed HTTP attempts also consume the allowance.'
+);
 $client->result = ['metrics' => ['sessions' => 10]];
 for ($i = 3; $i < 10; $i++) {
-    check(\block_msclarity\insights::refresh($client, $now + $i * MINSECS, true) === 'success',
-        'Within-budget manual request ' . ($i + 1) . '.');
+    check(
+        \block_msclarity\insights::refresh($client, $now + $i * MINSECS, true) === 'success',
+        'Within-budget manual request ' . ($i + 1) . '.'
+    );
 }
-check(\block_msclarity\insights::refresh($client, $now + 10 * MINSECS, true) === 'quota' && $client->calls === 10,
-    'The eleventh manual request cannot reach Clarity.');
-check(\block_msclarity\insights::refresh($client, $now + \block_msclarity\insights::INTERVAL) === 'quota' && $client->calls === 10,
-    'Cron cannot bypass a quota exhausted by manual refreshes.');
+check(
+    \block_msclarity\insights::refresh($client, $now + 10 * MINSECS, true) === 'quota' && $client->calls === 10,
+    'The eleventh manual request cannot reach Clarity.'
+);
+check(
+    \block_msclarity\insights::refresh($client, $now + \block_msclarity\insights::INTERVAL) === 'quota' && $client->calls === 10,
+    'Cron cannot bypass a quota exhausted by manual refreshes.'
+);
 set_config('apitoken', 'rotated-token', 'block_msclarity');
 \block_msclarity\insights::invalidate();
-check(\block_msclarity\insights::refresh($client, $now + 10 * MINSECS, true) === 'quota',
-    'Changing tokens cannot reset project accounting.');
+check(
+    \block_msclarity\insights::refresh($client, $now + 10 * MINSECS, true) === 'quota',
+    'Changing tokens cannot reset project accounting.'
+);
 set_config('projectid', 'differentproject', 'block_msclarity');
 check(\block_msclarity\insights::refresh($client, $now + 10 * MINSECS, true) === 'success', 'A different project has its own allowance.');
 set_config('projectid', 'w3y4plwlqv', 'block_msclarity');
-check(\block_msclarity\insights::refresh($client, $now + 11 * MINSECS, true) === 'quota',
-    'Switching back to a project retains its exhausted allowance.');
-check(\block_msclarity\request_budget::check('w3y4plwlqv', true, $now + 12 * HOURSECS)['remaining'] === 0,
-    'Crossing midnight or changing display timezone cannot reset the rolling allowance.');
-check(\block_msclarity\insights::refresh($client, $now + DAYSECS, true) === 'success' &&
+check(
+    \block_msclarity\insights::refresh($client, $now + 11 * MINSECS, true) === 'quota',
+    'Switching back to a project retains its exhausted allowance.'
+);
+check(
+    \block_msclarity\request_budget::check('w3y4plwlqv', true, $now + 12 * HOURSECS)['remaining'] === 0,
+    'Crossing midnight or changing display timezone cannot reset the rolling allowance.'
+);
+check(
+    \block_msclarity\insights::refresh($client, $now + DAYSECS, true) === 'success' &&
     \block_msclarity\request_budget::check('w3y4plwlqv', true, $now + DAYSECS)['used'] === 10,
-    'A request expires exactly at 24 hours and frees one slot.');
+    'A request expires exactly at 24 hours and frees one slot.'
+);
 
 // A request that read state before another process reserved slot ten must not use a stale cache.
 \block_msclarity\state_store::set('requestbudget', json_encode(['projects' => ['w3y4plwlqv' =>
     ['attempts' => array_fill(0, 9, $now)]]]));
 \block_msclarity\state_store::get('requestbudget');
-$holder = proc_open([PHP_BINARY, __DIR__ . '/lock_holder.php', $argv[1], 'w3y4plwlqv', (string)($now + MINSECS)],
-    [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+$holder = proc_open(
+    [PHP_BINARY, __DIR__ . '/lock_holder.php', $argv[1], 'w3y4plwlqv', (string)($now + MINSECS)],
+    [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+    $pipes
+);
 try {
     check(trim(fgets($pipes[1])) === 'ready', 'A separate process reserved the tenth request under the shared lock.');
 } finally {
@@ -271,8 +357,10 @@ try {
     proc_close($holder);
 }
 $callsbefore = $client->calls;
-check(\block_msclarity\insights::refresh($client, $now + 2 * MINSECS, true) === 'quota' && $client->calls === $callsbefore,
-    'A stale in-process read cannot allow an eleventh request after another process reserved the last slot.');
+check(
+    \block_msclarity\insights::refresh($client, $now + 2 * MINSECS, true) === 'quota' && $client->calls === $callsbefore,
+    'A stale in-process read cannot allow an eleventh request after another process reserved the last slot.'
+);
 
 // Remote project consumers can exhaust Clarity before our local ten requests.
 \block_msclarity\state_store::set('requestbudget', json_encode(['projects' => []]));
@@ -280,8 +368,10 @@ $client->result = ['error' => 'ratelimit'];
 check(\block_msclarity\insights::refresh($client, $now, true) === 'ratelimit', 'An upstream 429 installs a project backoff.');
 set_config('apitoken', 'another-token', 'block_msclarity');
 \block_msclarity\insights::invalidate();
-check(\block_msclarity\insights::refresh($client, $now + HOURSECS, true) === 'ratelimit',
-    'A token change cannot bypass an upstream 429 backoff.');
+check(
+    \block_msclarity\insights::refresh($client, $now + HOURSECS, true) === 'ratelimit',
+    'A token change cannot bypass an upstream 429 backoff.'
+);
 $client->result = ['metrics' => ['sessions' => 10]];
 check(\block_msclarity\insights::refresh($client, $now + DAYSECS, true) === 'success', 'Upstream backoff expires after 24 hours.');
 
@@ -292,10 +382,14 @@ foreach (['view', 'addinstance', 'myaddinstance'] as $cap) {
 }
 try {
     \core\session\manager::set_user($profile);
-    check(has_capability('block/msclarity:view', $system) && !\block_msclarity\configuration::can_view(),
-        'Manager with explicit view permission is still denied.');
-    check($block->get_content()->text === '' && $block->get_content_for_output($PAGE->get_renderer('core')) === null,
-        'Non-admins receive no block content or header, including previously cached admin content.');
+    check(
+        has_capability('block/msclarity:view', $system) && !\block_msclarity\configuration::can_view(),
+        'Manager with explicit view permission is still denied.'
+    );
+    check(
+        $block->get_content()->text === '' && $block->get_content_for_output($PAGE->get_renderer('core')) === null,
+        'Non-admins receive no block content or header, including previously cached admin content.'
+    );
     check($block->get_content_for_external($PAGE->get_renderer('core'))->title === null &&
         $block->get_config_for_external()->plugin == new stdClass(), 'External block output exposes neither title nor configuration.');
     check(!$block->user_can_addto($PAGE) && !$block->instance_can_be_edited(), 'Explicit manager grants cannot add or edit the block.');
@@ -313,8 +407,10 @@ try {
     \core\session\manager::set_user($admin);
 }
 $DB->set_field('block', 'visible', 0, ['name' => 'msclarity']);
-check(!\block_msclarity\configuration::enabled() && \block_msclarity\insights::refresh($client) === 'unconfigured',
-    'Disabling the plugin stops report refreshes.');
+check(
+    !\block_msclarity\configuration::enabled() && \block_msclarity\insights::refresh($client) === 'unconfigured',
+    'Disabling the plugin stops report refreshes.'
+);
 $DB->set_field('block', 'visible', 1, ['name' => 'msclarity']);
 
 // Leave a representative snapshot and dashboard instance for browser smoke tests.
@@ -330,8 +426,10 @@ $client->result = ['metrics' => ['sessions' => 125, 'users' => 90, 'pagespersess
 // Keep HTTP tests from contacting Clarity: direct POSTs must stop at the exhausted allowance.
 \block_msclarity\state_store::set('requestbudget', json_encode(['projects' => ['w3y4plwlqv' =>
     ['attempts' => array_fill(0, \block_msclarity\request_budget::LIMIT, time())]]]));
-if (!$DB->record_exists('block_instances', ['blockname' => 'msclarity', 'parentcontextid' => $system->id,
-    'pagetypepattern' => 'my-index'])) {
+if (
+    !$DB->record_exists('block_instances', ['blockname' => 'msclarity', 'parentcontextid' => $system->id,
+    'pagetypepattern' => 'my-index'])
+) {
     $PAGE->blocks->add_block('msclarity', $PAGE->blocks->get_default_region(), 0, false, 'my-index', null);
 }
 file_put_contents($CFG->dataroot . '/msclarity-test-fixture.json', json_encode([

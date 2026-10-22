@@ -1,15 +1,18 @@
 <?php
 // This file is part of Moodle - http://moodle.org/
-// Moodle is free software: you can redistribute it and/or modify it under the terms of
-// the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or (at your option) any later version.
 //
-// Moodle is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
-// You should have received a copy of the GNU General Public License along with Moodle.
-// If not, see <https://www.gnu.org/licenses/>.
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
  * Direct Clarity links.
@@ -20,11 +23,13 @@
  */
 namespace block_msclarity;
 
-defined('MOODLE_INTERNAL') || die();
-
-/** Construct consistently encoded links using the existing Variables filter convention. */
+/**
+ * Construct consistently encoded links using the existing Variables filter convention.
+ */
 final class dashboard_url {
     /**
+     * Make.
+     *
      * @param string|null $tag Custom tag to filter, or null for the site dashboard.
      * @param int|null $id Tag value.
      * @return \moodle_url Direct external dashboard URL.
@@ -34,6 +39,7 @@ final class dashboard_url {
         if ($tag !== null && $id !== null) {
             $params['Variables'] = $tag . ':' . $id;
         }
-        return new \moodle_url('https://clarity.microsoft.com/projects/view/' . configuration::project_id() . '/dashboard', $params);
+        $base = 'https://clarity.microsoft.com/projects/view/' . configuration::project_id() . '/dashboard';
+        return new \moodle_url($base, $params);
     }
 }

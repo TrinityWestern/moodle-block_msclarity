@@ -1,15 +1,18 @@
 <?php
 // This file is part of Moodle - http://moodle.org/
-// Moodle is free software: you can redistribute it and/or modify it under the terms of
-// the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or (at your option) any later version.
 //
-// Moodle is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
-// You should have received a copy of the GNU General Public License along with Moodle.
-// If not, see <https://www.gnu.org/licenses/>.
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
  * Shared per-project request allowance for scheduled and manual refreshes.
@@ -20,16 +23,22 @@
  */
 namespace block_msclarity;
 
-defined('MOODLE_INTERNAL') || die();
-
-/** Persist request attempts independently of snapshots and API token changes. */
+/**
+ * Persist request attempts independently of snapshots and API token changes.
+ */
 final class request_budget {
-    /** @var int Maximum requests in any rolling 24 hours; no reset timezone is assumed. */
+    /**
+     * @var int Maximum requests in any rolling 24 hours; no reset timezone is assumed.
+     */
     public const LIMIT = 10;
-    /** @var int Prevent rapid repeat clicks without imposing the cron interval on manual runs. */
+    /**
+     * @var int Prevent rapid repeat clicks without imposing the cron interval on manual runs.
+     */
     public const COOLDOWN = MINSECS;
 
     /**
+     * Check.
+     *
      * @param string $projectid Clarity project ID.
      * @param bool $manual Whether this is an immediate admin refresh.
      * @param int $now Current timestamp.
@@ -89,7 +98,9 @@ final class request_budget {
         self::save($ledger);
     }
 
-    /** Preserve the legacy last attempt and 429 backoff when upgrading from 1.0.0. */
+    /**
+     * Preserve the legacy last attempt and 429 backoff when upgrading from 1.0.0.
+     */
     public static function migrate_legacy(): void {
         if (state_store::get('requestbudget') === null) {
             self::save(self::load());
@@ -124,6 +135,8 @@ final class request_budget {
     }
 
     /**
+     * Recent.
+     *
      * @param array $attempts Stored timestamps.
      * @param int $now Current timestamp.
      * @return array Unexpired attempts. Future timestamps remain counted after a clock correction.
@@ -133,6 +146,8 @@ final class request_budget {
     }
 
     /**
+     * Save.
+     *
      * @param array $ledger Per-project accounting without API credentials or response data.
      */
     private static function save(array $ledger): void {

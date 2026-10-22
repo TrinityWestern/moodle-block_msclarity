@@ -89,7 +89,8 @@ jobs:
 
       - name: Moodle Code Checker
         if: ${{ !cancelled() }}
-        run: moodle-plugin-ci phpcs --max-warnings 0
+        # Disposable CLI harnesses under tests/ are excluded; they are not shipped in the plugin ZIP.
+        run: moodle-plugin-ci phpcs --max-warnings 0 -- '--ignore=*/tests/*'
 
       - name: Moodle PHPDoc Checker
         if: ${{ !cancelled() }}

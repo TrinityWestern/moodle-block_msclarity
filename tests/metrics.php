@@ -1,5 +1,19 @@
 <?php
-// Licensed under the GNU GPL v3 or later.
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Dependency-free export parser regression tests.
  * Run with: php tests/metrics.php
@@ -13,10 +27,13 @@ if (PHP_SAPI !== 'cli') {
     exit;
 }
 define('MOODLE_INTERNAL', true);
+defined('MOODLE_INTERNAL') || die();
 require_once(__DIR__ . '/../classes/metrics.php');
 require_once(__DIR__ . '/../classes/export_client.php');
 
 /**
+ * Check.
+ *
  * @param bool $condition Assertion.
  * @param string $message Failure message.
  */
@@ -52,8 +69,10 @@ $invalidvalues = [['metricName' => 'Traffic', 'information' => [[
     'totalSessionCount' => '-1', 'distinctUserCount' => '3.5', 'pagesPerSessionPercentage' => 'NaN',
 ]]]];
 $result = \block_msclarity\metrics::parse(json_encode($invalidvalues));
-check($result['sessions'] === null && $result['users'] === null && $result['pagespersession'] === null,
-    'Negative counts, fractional counts and nonnumbers must be unavailable.');
+check(
+    $result['sessions'] === null && $result['users'] === null && $result['pagespersession'] === null,
+    'Negative counts, fractional counts and nonnumbers must be unavailable.'
+);
 check(count(array_filter(\block_msclarity\metrics::parse('[]'), fn($v) => $v !== null)) === 0, 'Empty exports.');
 
 $invalidresponses = ['not json', '{}', '{"error":"denied"}', '[{"metricName":"Traffic"}]',
@@ -65,16 +84,23 @@ foreach ($invalidresponses as $body) {
         \block_msclarity\metrics::parse($body);
         throw new RuntimeException('Malformed or dimensioned responses must fail: ' . $body);
     } catch (UnexpectedValueException $e) {
-        // Expected.
+        // Expected parse failure for malformed Clarity export payloads.
+        unset($e);
     }
 }
-foreach ([400 => 'request', 401 => 'authentication', 403 => 'authorization', 429 => 'ratelimit',
-    302 => 'service', 500 => 'service'] as $status => $error) {
-    check(\block_msclarity\export_client::decode_response($status, 'secret upstream response') === ['error' => $error],
-        'HTTP errors must return only safe codes.');
+foreach (
+    [400 => 'request', 401 => 'authentication', 403 => 'authorization', 429 => 'ratelimit',
+    302 => 'service', 500 => 'service'] as $status => $error
+) {
+    check(
+        \block_msclarity\export_client::decode_response($status, 'secret upstream response') === ['error' => $error],
+        'HTTP errors must return only safe codes.'
+    );
 }
 check(\block_msclarity\export_client::decode_response(200, 'invalid JSON') === ['error' => 'response'], 'Invalid JSON response.');
 check(\block_msclarity\export_client::decode_response(200, '[]', 28) === ['error' => 'network'], 'Timeout handling.');
-check(\block_msclarity\export_client::decode_response(200, json_encode($sample))['metrics']['sessions'] === 123,
-    'Successful responses are normalized.');
+check(
+    \block_msclarity\export_client::decode_response(200, json_encode($sample))['metrics']['sessions'] === 123,
+    'Successful responses are normalized.'
+);
 echo "Export parser and HTTP outcome regression tests passed.\n";

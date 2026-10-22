@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="block_msclarity">
+  <description>Moodle coding style for block_msclarity (tests are local CLI harnesses).</description>
+  <rule ref="moodle"/>
+  <exclude-pattern>*/tests/*</exclude-pattern>
+</ruleset>
